@@ -33,6 +33,6 @@ spec:
     spec:
       containers:
       - name: corona
-        image: mtaqi84/arabic-corona-board
+        image: mtaqi84/arabic-corona-board:CORONA_APP_VERSION
         ports:
         - containerPort: 3000
