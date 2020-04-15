@@ -60,6 +60,24 @@ $ docker run -p 3000:3000 <dockerhub_username>/<dockerhub_repo_name>:latest
 $ docker push <dockerhub_username>/<dockerhub_repo_name>:latest
 ```
 
+### Deploy App to Amazon's EKS (CloudFormation)
+
+#### Create EKS Cluster (Control Plane, and Worker Nodes)
+
+cloudformation folder includes scripts for building the environment depected in the following graph.
+
+![Arabic Corona Board EKS Environment](cloudformation/Corona-App-EKS-Environment.png)
+
+To build the environment
+```bsh
+$ ./cloudformation/build_corona_app_environment.sh
+```
+#### Deploy Dockerized app to EKS Environment
+```bsh
+$ kubectl apply -f ./cloudformation/k8s_corona.yaml
+```
+k8s_corona.yaml is using mtaqi84/arabic-corona-board image by default.
+
 ## Attribution
 - Forked from Soable corona-board project [Corona Board](https://github.com/soaple/corona-board/blob/master/README.md)
 - Global Corona Dashboard powered by [StickyBoard](https://github.com/soaple/stickyboard/)

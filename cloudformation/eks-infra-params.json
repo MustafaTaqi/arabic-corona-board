@@ -1,0 +1,38 @@
+[
+    {
+        "ParameterKey": "EnvironmentName",
+        "ParameterValue": "Corona"
+    },
+    {
+        "ParameterKey": "KeyPairName",
+        "ParameterValue": "udacity_pem2"
+    },
+    {
+        "ParameterKey": "VpcCIDR",
+        "ParameterValue": "10.100.0.0/16"
+    },
+    {
+        "ParameterKey":"PublicSubnet1CIDR",
+        "ParameterValue": "10.100.128.0/20"
+    },
+    {
+        "ParameterKey":"PublicSubnet2CIDR",
+        "ParameterValue": "10.100.144.0/20"
+    },
+    {
+        "ParameterKey":"PublicSubnet3CIDR",
+        "ParameterValue": "10.100.160.0/20"
+    },
+    {
+        "ParameterKey":"PrivateSubnet1CIDR",
+        "ParameterValue": "10.100.0.0/19"
+    },
+    {
+        "ParameterKey":"PrivateSubnet2CIDR",
+        "ParameterValue": "10.100.32.0/19"
+    },
+    {
+        "ParameterKey":"PrivateSubnet3CIDR",
+        "ParameterValue": "10.100.64.0/19"
+    }        
+]

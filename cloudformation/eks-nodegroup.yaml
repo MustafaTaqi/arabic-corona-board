@@ -1,0 +1,243 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Amazon EKS - Node Group
+
+Mappings:
+  ServicePrincipals:
+    aws-cn:
+      ec2: ec2.amazonaws.com.cn
+    aws:
+      ec2: ec2.amazonaws.com
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that will be prefixed to resource names
+    Type: String
+
+  KeyName:
+    Description: The EC2 Key Pair to allow SSH access to the instances
+    Type: AWS::EC2::KeyPair::KeyName
+    
+  BootstrapArguments:
+    Type: String
+    Default: ""
+    Description: "Arguments to pass to the bootstrap script. See files/bootstrap.sh in https://github.com/awslabs/amazon-eks-ami"
+  NodeVolumeSize:
+    Type: Number
+    Default: 20
+    Description: Node volume size
+
+  NodeImageId:
+    Type: AWS::EC2::Image::Id
+    Default: ""
+    Description: (Optional) Specify your own custom image ID. This value overrides any AWS Systems Manager Parameter Store value specified above.
+
+  NodeInstanceType:
+    Type: String
+    Default: t2.medium
+
+  NodeAutoScalingGroupDesiredCapacity:
+    Type: Number
+    Default: "3"
+    Description: Desired capacity of Node Group ASG.
+
+  NodeAutoScalingGroupMaxSize:
+    Type: Number
+    Default: "4"
+    Description: Maximum size of Node Group ASG. Set to at least 1 greater than NodeAutoScalingGroupDesiredCapacity.
+
+  NodeAutoScalingGroupMinSize:
+    Type: Number
+    Default: "1"
+    Description: Minimum size of Node Group ASG.
+
+  NodeGroupName:
+    Type: String
+    Description: Unique identifier for the Node Group.
+
+Resources:
+  NodeInstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - !FindInMap [ServicePrincipals, !Ref "AWS::Partition", ec2]
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonEKS_CNI_Policy"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+      Path: /
+
+  NodeInstanceProfile:
+    Type: "AWS::IAM::InstanceProfile"
+    Properties:
+      Path: /
+      Roles:
+        - Ref: NodeInstanceRole
+
+  NodeSecurityGroup:
+    Type: "AWS::EC2::SecurityGroup"
+    Properties:
+      GroupDescription: Security group for all nodes in the cluster
+      Tags:
+        - Key:
+            Fn::Sub:
+            - "kubernetes.io/cluster/${ClusterName}"
+            - ClusterName:
+                Fn::ImportValue:
+                  !Sub "${EnvironmentName}-EKS-Cluster"
+          Value: owned
+                    
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-VPCID"
+
+  NodeSecurityGroupWorkertoWorkerIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      Description: Allow worker nodes to communicate with each other
+      FromPort: 0
+      GroupId: !Ref NodeSecurityGroup
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      ToPort: 65535
+
+  NodeSecurityGroupWorkertoAllEgress:
+    Type: "AWS::EC2::SecurityGroupEgress"
+    Properties:
+      Description: Allow Egress worker traffic to all
+      FromPort: 0
+      GroupId: !Ref NodeSecurityGroup
+      IpProtocol: "-1"
+      CidrIp: "0.0.0.0/0"
+      ToPort: 65535
+
+  NodeSecurityGroupMastertoWorkerIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      Description: Allow Ingress traffic Master to Worker
+      FromPort: 0
+      GroupId: !Ref NodeSecurityGroup
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-EKSControlPlaneSecurityGroup"
+      ToPort: 65535
+  
+  ControlPlaneSecurityGroupMastertoMasterIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      Description: Allow Ingress traffic Master to Master
+      FromPort: 0
+      GroupId: 
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-EKSControlPlaneSecurityGroup"
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-EKSControlPlaneSecurityGroup"
+      ToPort: 65535
+
+
+  ControlPlaneSecurityGroupMastertoAllEgress:
+    Type: "AWS::EC2::SecurityGroupEgress"
+    Properties:
+      Description: Allow Egress traffic Master to All
+      FromPort: 0
+      GroupId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-EKSControlPlaneSecurityGroup"
+      IpProtocol: "-1"
+      CidrIp: "0.0.0.0/0"
+      ToPort: 65535
+
+
+  ControlPlaneSecurityGroupWorkertoMasterIngress:
+    Type: "AWS::EC2::SecurityGroupIngress"
+    Properties:
+      Description: Allow Ingress traffic Worker to Master
+      FromPort: 0
+      GroupId:
+        Fn::ImportValue:
+          !Sub "${EnvironmentName}-EKSControlPlaneSecurityGroup"
+      IpProtocol: "-1"
+      SourceSecurityGroupId: !Ref NodeSecurityGroup
+      ToPort: 65535
+
+  NodeLaunchConfig:
+    Type: "AWS::AutoScaling::LaunchConfiguration"
+    Properties:
+      AssociatePublicIpAddress: false
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            DeleteOnTermination: true
+            VolumeSize: !Ref NodeVolumeSize
+            VolumeType: gp2
+      IamInstanceProfile: !Ref NodeInstanceProfile
+      ImageId: !Ref NodeImageId
+      InstanceType: !Ref NodeInstanceType
+      KeyName: !Ref KeyName
+      SecurityGroups:
+        - Ref: NodeSecurityGroup
+      UserData: !Base64
+        "Fn::Sub":
+          - |
+            #!/bin/bash
+            set -o xtrace
+            sudo /etc/eks/bootstrap.sh ${ClusterName} ${BootstrapArguments}
+          - ClusterName:
+              Fn::ImportValue:
+                !Sub "${EnvironmentName}-EKS-Cluster" 
+  NodeGroup:
+    Type: "AWS::AutoScaling::AutoScalingGroup"
+    Properties:
+      DesiredCapacity: !Ref NodeAutoScalingGroupDesiredCapacity
+      LaunchConfigurationName: !Ref NodeLaunchConfig
+      MaxSize: !Ref NodeAutoScalingGroupMaxSize
+      MinSize: !Ref NodeAutoScalingGroupMinSize
+      Tags:
+        - Key: Name
+          PropagateAtLaunch: true
+          Value: 
+            Fn::Sub:
+              - "${ClusterName}-${NodeGroupName}-Node"
+              - ClusterName:
+                  Fn::ImportValue:
+                    !Sub "${EnvironmentName}-EKS-Cluster" 
+        - Key: 
+            Fn::Sub:
+              - "kubernetes.io/cluster/${ClusterName}"
+              - ClusterName:
+                  Fn::ImportValue:
+                    !Sub "${EnvironmentName}-EKS-Cluster" 
+          PropagateAtLaunch: true
+          Value: owned
+      VPCZoneIdentifier:
+        - Fn::ImportValue:
+            !Sub "${EnvironmentName}-PRIV1-SN"
+        - Fn::ImportValue:
+            !Sub "${EnvironmentName}-PRIV2-SN"
+        - Fn::ImportValue:
+            !Sub "${EnvironmentName}-PRIV3-SN"
+    UpdatePolicy:
+      AutoScalingRollingUpdate:
+        MaxBatchSize: 1
+        MinInstancesInService: !Ref NodeAutoScalingGroupDesiredCapacity
+        PauseTime: PT5M
+
+Outputs:
+  NodeInstanceRole:
+    Description: The node instance role
+    Value: !GetAtt NodeInstanceRole.Arn
+
+  NodeSecurityGroup:
+    Description: The security group for the node group
+    Value: !Ref NodeSecurityGroup
+

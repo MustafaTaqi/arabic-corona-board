@@ -1,0 +1,34 @@
+[
+  {
+    "ParameterKey": "EnvironmentName",
+    "ParameterValue": "Corona"
+  },
+  {
+      "ParameterKey": "KeyName",
+      "ParameterValue": "udacity_pem2"
+  },
+  {
+    "ParameterKey": "NodeVolumeSize",
+    "ParameterValue" : "20"
+  },
+  {
+    "ParameterKey":"NodeImageId",
+    "ParameterValue": "ami-0e710550577202c55"
+  },
+  {
+    "ParameterKey":"NodeAutoScalingGroupDesiredCapacity",
+    "ParameterValue": "1"
+  },
+  {
+    "ParameterKey": "NodeAutoScalingGroupMinSize",
+    "ParameterValue" : "1"
+  },
+  {
+    "ParameterKey": "NodeAutoScalingGroupMaxSize",
+    "ParameterValue" : "3"
+  },
+  {
+    "ParameterKey": "NodeGroupName",
+    "ParameterValue": "Corona-nodegroup"
+  }
+]

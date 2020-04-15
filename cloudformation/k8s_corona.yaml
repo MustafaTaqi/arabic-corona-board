@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: corona
+  labels:
+    app: corona
+spec:
+  ports:
+  - port: 80
+    targetPort: 3000
+  selector:
+    app: corona
+  type: LoadBalancer
+
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: corona
+  labels:
+    app: corona
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: corona
+  template:
+    metadata:
+      labels:
+        app: corona
+    spec:
+      containers:
+      - name: corona
+        image: mtaqi84/arabic-corona-board
+        ports:
+        - containerPort: 3000

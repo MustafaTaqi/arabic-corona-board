@@ -1,0 +1,14 @@
+[
+  {
+      "ParameterKey": "EnvironmentName",
+      "ParameterValue": "Corona"
+  },
+  {
+    "ParameterKey": "EKSClusterName",
+    "ParameterValue": "Corona-EKS-Cluster"
+  },
+  {
+    "ParameterKey": "KubernetesVersion",
+    "ParameterValue": "1.15"
+  }   
+]
