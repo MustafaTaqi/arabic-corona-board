@@ -28,7 +28,7 @@ const SidebarMenuDict = {
      * Component Menus
      ******************/
     STATISTICS: [{
-        title: 'Dashboard',
+        title: 'لوحة العرض',
         icon: (<Dashboard />),
         url: '/statistics/dashboard',
         value: 101,
