@@ -219,6 +219,13 @@ class DrawerMenu extends React.Component {
                             Data provided by <b>JHU CSSE</b>
                         </a>
                     </div>
+                    <div>
+                        <p>
+                            <font size="1">
+                                CORONA_APP_VERSION
+                            </font>                            
+                        </p>
+                    </div>
                 </div>
             </div>
         )
