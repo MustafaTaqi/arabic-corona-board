@@ -45,5 +45,5 @@ data:
 "
 echo " Apply ConfigMap so that nodegroup workers can join to the EKS cluster "
 echo "$awsauthcm" | kubectl apply -f -
-kubectl apply -f ./k8s_corona.yaml
+kubectl apply -f ./k8s_corona_latest.yaml
 kubectl get services corona
