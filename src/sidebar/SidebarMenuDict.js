@@ -34,7 +34,7 @@ const SidebarMenuDict = {
         value: 101,
         need_permission: false
     }, {
-        title: 'Risk Ranking',
+        title: 'مرتبة الخطورة',
         icon: (<Error />),
         url: '/statistics/risk_ranking',
         value: 102,
