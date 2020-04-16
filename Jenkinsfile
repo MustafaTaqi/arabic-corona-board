@@ -4,7 +4,7 @@ pipeline {
         stage('Check if the current tag is Release*') {
             steps {
                 git credentialsId: 'git-ssh-demo', url: 'git@github.com:MustafaTaqi/arabic-corona-board.git'
-            script {
+                script {
                 GIT_TAG = sh returnStdout: true, script: '''git tag --points-at HEAD| head -n1 '''
                 GIT_TAG = GIT_TAG.trim();
                 echo "GIT_TAG is ${GIT_TAG}"
@@ -12,9 +12,23 @@ pipeline {
                 GIT_COMMIT = GIT_COMMIT.trim();
                 echo "GIT_COMMIT is ${GIT_COMMIT}"
 
+                }
             }
         }
-      }
+      
+        stage('Lint Dockerfile'){
+            when {
+                expression {
+                    GIT_TAG?.startsWith("Stable");
+                }
+            }
+            steps {
+                script {
+                    sh 'docker run --rm -i hadolint/hadolint < Dockerfile'
+                }
+            }
+        }
+
         stage('Build Docker Image'){
             when {
                 expression {
